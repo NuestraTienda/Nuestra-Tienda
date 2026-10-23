@@ -1,58 +1,31 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse, type NextRequest } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import Catalog from "@/components/Catalog";
+import type { Product, Settings } from "@/types/database";
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  });
+export default async function HomePage() {
+  const supabase = await createClient();
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
-        },
-      },
-    }
-  );
+  const { data: settingsData } = await supabase
+    .from("settings")
+    .select("*")
+    .limit(1)
+    .single();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const settings: Settings = settingsData || {
+    id: "",
+    brand_name: "Nuestra Tienda",
+    whatsapp_number: "5493468542942",
+    created_at: "",
+    updated_at: "",
+  };
 
-  if (
-    request.nextUrl.pathname.startsWith("/admin") &&
-    !request.nextUrl.pathname.startsWith("/admin/login")
-  ) {
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/admin/login";
-      return NextResponse.redirect(url);
-    }
-  }
+  const { data: productsData } = await supabase
+    .from("products")
+    .select("*, categories(*)")
+    .eq("is_available", true)
+    .order("created_at", { ascending: false });
 
-  if (request.nextUrl.pathname.startsWith("/admin/login") && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/admin";
-    return NextResponse.redirect(url);
-  }
+  const products = (productsData || []) as Product[];
 
-  return supabaseResponse;
+  return <Catalog products={products} settings={settings} />;
 }
-
-export const config = {
-  matcher: ["/admin/:path*"],
-};
