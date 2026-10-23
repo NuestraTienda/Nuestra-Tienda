@@ -33,3 +33,4 @@ export default async function HomePage() {
 
   return <Catalog products={products} settings={settings} />;
 }
+ fix build
