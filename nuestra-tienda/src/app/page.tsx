@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Catalog from "@/components/Catalog";
 import type { Product, Settings } from "@/types/database";
 
-export const revalidate = 30; // revalida cada 30 segundos
+
 
 export default async function HomePage() {
   const supabase = await createClient();
