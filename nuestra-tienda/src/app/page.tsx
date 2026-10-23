@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import Catalog from "@/components/Catalog";
 import type { Product, Settings } from "@/types/database";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const supabase = await createClient();
 
