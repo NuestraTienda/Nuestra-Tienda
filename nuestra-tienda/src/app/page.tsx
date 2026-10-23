@@ -1,36 +1,27 @@
-import { createClient } from "@/lib/supabase/server";
-import Catalog from "@/components/Catalog";
-import type { Product, Settings } from "@/types/database";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
+export async function createClient() {
+  const cookieStore = await cookies();
 
-
-export default async function HomePage() {
-  const supabase = await createClient();
-
-  // Traer settings
-  const { data: settingsData } = await supabase
-    .from("settings")
-    .select("*")
-    .limit(1)
-    .single();
-
-  const settings: Settings = settingsData || {
-    id: "",
-    brand_name: "Nuestra Tienda",
-    whatsapp_number: "5493468542942",
-    created_at: "",
-    updated_at: "",
-  };
-
-  // Traer productos disponibles
-  const { data: productsData } = await supabase
-    .from("products")
-    .select("*, categories(*)")
-    .eq("is_available", true)
-    .order("created_at", { ascending: false });
-
-  const products = (productsData || []) as Product[];
-
-  return <Catalog products={products} settings={settings} />;
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component — ignore
+          }
+        },
+      },
+    }
+  );
 }
-
